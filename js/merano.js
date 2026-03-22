@@ -1,7 +1,7 @@
 /**
  * Merano — single site script (aligned with Bine’s flow).
- * - After first paint: one requestAnimationFrame → reveal-on-load, hero-revealed, stagger-revealed
- * - Scroll: IntersectionObserver on reveal targets + grid stagger (like Bine’s scroll-reveal)
+ * - After first paint: one requestAnimationFrame → reveal-on-load, hero-revealed, stagger-revealed (non-explore blocks only)
+ * - Scroll: IntersectionObserver on reveal targets; home Project Pages grid staggers when it enters view (PC + mobile)
  */
 (function () {
   "use strict";
@@ -56,23 +56,30 @@
       el.style.transitionDelay = idx * 0.08 + "s";
     }
 
-    /** Home “Project Pages” cards: on viewports ≤960px, stagger runs when the grid scrolls into view (matches scroll-reveal UX; avoids off-screen load animations on tall mobile heroes). Desktop unchanged. */
-    function initExploreGridStaggerOnScrollMobile() {
-      if (!window.matchMedia("(max-width: 960px)").matches) return;
+    /** Home Project Pages — same pattern as Bine project-card: opacity/transform transition + setTimeout stagger (no prefers-reduced-motion shortcut; Windows/Android “animations off” still staggers). */
+    function initExploreGridStaggerOnScroll() {
       var grid = document.querySelector(".explore-grid.stagger-reveal-on-load");
-      if (!grid || grid.classList.contains("stagger-revealed")) return;
+      if (!grid || grid.dataset.exploreRevealInit === "1") return;
+      var cards = grid.querySelectorAll(".stagger-reveal-item");
+      if (!cards.length) return;
 
-      function reveal() {
-        grid.classList.add("stagger-revealed");
+      var staggerMs = 130;
+
+      function markDone() {
+        grid.dataset.exploreRevealInit = "1";
       }
 
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        reveal();
-        return;
+      function revealSequential() {
+        cards.forEach(function (card, i) {
+          setTimeout(function () {
+            card.classList.add("explore-card--visible");
+            if (i === cards.length - 1) markDone();
+          }, i * staggerMs);
+        });
       }
 
       if (typeof IntersectionObserver === "undefined") {
-        reveal();
+        revealSequential();
         return;
       }
 
@@ -80,13 +87,15 @@
         function (entries) {
           entries.forEach(function (entry) {
             if (!entry.isIntersecting) return;
-            reveal();
+            revealSequential();
             io.disconnect();
           });
         },
-        { root: null, rootMargin: "0px 0px -36px 0px", threshold: 0 }
+        { root: null, rootMargin: "0px 0px 12% 0px", threshold: 0 }
       );
-      io.observe(grid);
+      requestAnimationFrame(function () {
+        io.observe(grid);
+      });
     }
 
     function initScrollRevealObserver() {
@@ -153,13 +162,13 @@
       });
 
       document.querySelectorAll(".stagger-reveal-on-load").forEach(function (block) {
-        if (window.matchMedia("(max-width: 960px)").matches && block.classList.contains("explore-grid")) {
+        if (block.classList.contains("explore-grid")) {
           return;
         }
         block.classList.add("stagger-revealed");
       });
 
-      initExploreGridStaggerOnScrollMobile();
+      initExploreGridStaggerOnScroll();
 
       initScrollRevealObserver();
     }
@@ -213,14 +222,19 @@
     updateNavOffset();
     window.addEventListener("resize", updateNavOffset, { passive: true });
 
-    /* If the home explore grid was waiting for scroll (mobile) and the viewport becomes desktop, reveal so cards are never stuck hidden. */
+    /* Explore grid: if layout changes and the grid is in view but reveal never ran, show cards so they are not stuck hidden. */
     window.addEventListener(
       "resize",
       function () {
-        if (!window.matchMedia("(min-width: 961px)").matches) return;
         var grid = document.querySelector(".explore-grid.stagger-reveal-on-load");
-        if (grid && !grid.classList.contains("stagger-revealed")) {
-          grid.classList.add("stagger-revealed");
+        if (!grid || grid.dataset.exploreRevealInit === "1") return;
+        var r = grid.getBoundingClientRect();
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+        if (r.bottom > 4 && r.top < vh * 0.96) {
+          grid.querySelectorAll(".stagger-reveal-item").forEach(function (c) {
+            c.classList.add("explore-card--visible");
+          });
+          grid.dataset.exploreRevealInit = "1";
         }
       },
       { passive: true }

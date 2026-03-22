@@ -626,31 +626,18 @@ main > .hero:first-child {
   }
 }
 
-/* Staggered blocks on load (e.g. explore cards) */
-.stagger-reveal-on-load .stagger-reveal-item {
+/* Home Project Pages — Bine-style: transition + JS setTimeout + .explore-card--visible (not @keyframes; not overridden in prefers-reduced-motion). */
+.explore-grid.stagger-reveal-on-load .stagger-reveal-item {
   opacity: 0;
-  transform: translateY(24px);
-  animation: merano-hero-reveal 0.75s var(--ease-out) forwards;
-  animation-fill-mode: both;
+  transform: translateY(22px);
+  transition:
+    opacity 0.55s var(--ease-out),
+    transform 0.55s var(--ease-out);
 }
 
-.stagger-reveal-on-load.stagger-revealed .stagger-reveal-item:nth-child(1) {
-  animation-delay: 0.15s;
-}
-.stagger-reveal-on-load.stagger-revealed .stagger-reveal-item:nth-child(2) {
-  animation-delay: 0.32s;
-}
-.stagger-reveal-on-load.stagger-revealed .stagger-reveal-item:nth-child(3) {
-  animation-delay: 0.49s;
-}
-.stagger-reveal-on-load.stagger-revealed .stagger-reveal-item:nth-child(4) {
-  animation-delay: 0.66s;
-}
-.stagger-reveal-on-load.stagger-revealed .stagger-reveal-item:nth-child(5) {
-  animation-delay: 0.83s;
-}
-.stagger-reveal-on-load.stagger-revealed .stagger-reveal-item:nth-child(6) {
-  animation-delay: 1s;
+.explore-grid.stagger-reveal-on-load .stagger-reveal-item.explore-card--visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .hero-eyebrow {
@@ -779,7 +766,8 @@ main > .hero.hero--compact:first-child {
     transition: none;
   }
 
-  .stagger-reveal-on-load .stagger-reveal-item {
+  /* Bine-style: project/explore tiles use transition + JS setTimeout stagger — not @keyframes. Do not reset those here or Windows/Android “animation off” kills the stagger. */
+  .stagger-reveal-on-load .stagger-reveal-item:not(.explore-card) {
     opacity: 1;
     transform: none;
     animation: none !important;
